@@ -1,0 +1,19 @@
+apiVersion: v2
+name: eks-security-baseline
+description: >-
+  In-cluster security baseline for Amazon EKS. Installs Kyverno (the one
+  open-source tool with no AWS-native equivalent) and bundles Pod Security
+  Admission labels, Kyverno policies, network policies, and priority classes.
+  AWS-native controls (Inspector, GuardDuty, Signer, Security Hub, ECR scanning)
+  are enabled separately at the account level and are NOT managed by this chart.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+# Kyverno is pulled in as a dependency. This is the only installed tool;
+# everything else in templates/ is plain Kubernetes objects.
+dependencies:
+  - name: kyverno
+    version: "3.5.3"
+    repository: "https://kyverno.github.io/kyverno/"
+    condition: kyverno.enabled

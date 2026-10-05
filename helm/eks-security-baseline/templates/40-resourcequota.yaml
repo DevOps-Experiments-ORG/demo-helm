@@ -1,0 +1,41 @@
+{{- if .Values.resourceQuota.enabled }}
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: app-quota
+  namespace: {{ .Values.appNamespace }}
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  hard:
+    requests.cpu: {{ .Values.resourceQuota.hard.requestsCpu | quote }}
+    requests.memory: {{ .Values.resourceQuota.hard.requestsMemory | quote }}
+    limits.cpu: {{ .Values.resourceQuota.hard.limitsCpu | quote }}
+    limits.memory: {{ .Values.resourceQuota.hard.limitsMemory | quote }}
+    pods: {{ .Values.resourceQuota.hard.pods | quote }}
+---
+# LimitRange gives default requests/limits so pods that omit them still satisfy
+# the ResourceQuota, and sets per-container min/max bounds.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: app-limits
+  namespace: {{ .Values.appNamespace }}
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: 256Mi
+      defaultRequest:
+        cpu: "100m"
+        memory: 128Mi
+      max:
+        cpu: "2"
+        memory: 2Gi
+      min:
+        cpu: "50m"
+        memory: 64Mi
+{{- end }}

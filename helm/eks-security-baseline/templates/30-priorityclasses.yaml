@@ -1,0 +1,31 @@
+{{- if .Values.priorityClasses.enabled }}
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: critical-app
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+value: 1000000
+globalDefault: false
+description: "Business-critical workloads and security agents. Evicted last."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: standard-app
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+value: 100000
+globalDefault: false
+description: "Normal application workloads."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: best-effort
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+value: 1000
+globalDefault: false
+description: "Batch / non-critical. First evicted under pressure."
+{{- end }}

@@ -1,0 +1,83 @@
+# ============================================================================
+# eks-security-baseline — values
+# Cluster : ai-powered-secure-k8s-cluster
+# Account : 730335384723   |   Region: ap-south-1   |   K8s: 1.35
+# ============================================================================
+
+# The namespace your application runs in. PSA labels, network policies, quota
+# and priority defaults are applied here. CHANGE THIS to your real app namespace.
+appNamespace: "applications"
+
+# Your ECR registry — used by the "allowed registries" policy.
+ecrRegistry: "730335384723.dkr.ecr.ap-south-1.amazonaws.com"
+
+# AWS Signer root cert for image-signature verification (Phase 8).
+# Leave verifyImages.enabled=false until you paste the real cert.
+signer:
+  profileArn: "arn:aws:signer:ap-south-1:730335384723:/signing-profiles/ecr_signing_profile/VByjb41pI7"
+
+# --------------------------------------------------------------------------
+# Global policy mode. Start in "Audit" so nothing is blocked; flip to "Enforce"
+# once policy reports are clean. One switch controls all Kyverno policies below.
+# --------------------------------------------------------------------------
+policyMode: "Audit"   # Audit | Enforce
+
+# --------------------------------------------------------------------------
+# Pod Security Admission (built into Kubernetes — no install, just labels)
+# Modes: privileged | baseline | restricted. Start with warn+audit only.
+# --------------------------------------------------------------------------
+podSecurityAdmission:
+  enabled: true
+  level: "restricted"
+  enforce: false          # false = warn+audit only (safe). Set true to block.
+  createNamespace: false  # false = namespace already exists (label it via kubectl, see README). true = Helm creates it.
+
+# --------------------------------------------------------------------------
+# Feature toggles for the bundled resources
+# --------------------------------------------------------------------------
+policies:
+  disallowPrivileged: true
+  requireNonRoot: true
+  requireResourceLimits: true
+  restrictRegistries: true
+  disallowLatestTag: true
+  requireDropAllCaps: true
+
+networkPolicies:
+  enabled: true
+  defaultDeny: true
+  allowDns: true
+
+priorityClasses:
+  enabled: true
+
+resourceQuota:
+  enabled: true
+  hard:
+    requestsCpu: "4"
+    requestsMemory: "8Gi"
+    limitsCpu: "8"
+    limitsMemory: "16Gi"
+    pods: "20"
+
+verifyImages:
+  enabled: false   # turn on after pasting the Signer root cert below
+  signerRootCertPem: |
+    -----BEGIN CERTIFICATE-----
+    <PASTE AWS SIGNER ROOT CERT PEM HERE>
+    -----END CERTIFICATE-----
+
+# --------------------------------------------------------------------------
+# Kyverno subchart config (the only installed tool)
+# --------------------------------------------------------------------------
+kyverno:
+  enabled: true
+  # HA admission controller for a real cluster
+  admissionController:
+    replicas: 3
+  backgroundController:
+    replicas: 1
+  cleanupController:
+    replicas: 1
+  reportsController:
+    replicas: 1

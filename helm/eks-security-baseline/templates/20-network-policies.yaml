@@ -1,0 +1,43 @@
+{{- if .Values.networkPolicies.enabled }}
+{{- if .Values.networkPolicies.defaultDeny }}
+# Deny all ingress + egress in the app namespace. Allow rules below reopen
+# only what's needed. (Enforced by the VPC CNI network-policy agent.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: {{ .Values.appNamespace }}
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+{{- end }}
+{{- if .Values.networkPolicies.allowDns }}
+---
+# Re-allow DNS egress to CoreDNS so name resolution keeps working.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: {{ .Values.appNamespace }}
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+{{- end }}
+{{- end }}

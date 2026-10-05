@@ -1,0 +1,36 @@
+{{- if .Values.verifyImages.enabled }}
+# Verify ECR images are signed by your AWS Signer profile before admission.
+# Requires Kyverno (installed by this chart). Honors the global policyMode.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-ecr-image-signatures
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+  annotations:
+    policies.kyverno.io/category: Supply Chain
+spec:
+  validationFailureAction: {{ .Values.policyMode }}
+  background: false
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: verify-signature
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                {{- include "eks-security-baseline.excludedNamespaces" . | nindent 16 }}
+      verifyImages:
+        - imageReferences:
+            - "{{ .Values.ecrRegistry }}/*"
+          attestors:
+            - count: 1
+              entries:
+                - notary:
+                    certs: |-
+                      {{- .Values.verifyImages.signerRootCertPem | nindent 22 }}
+{{- end }}

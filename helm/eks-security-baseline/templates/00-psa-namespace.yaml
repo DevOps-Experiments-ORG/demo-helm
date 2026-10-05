@@ -1,0 +1,20 @@
+{{- if and .Values.podSecurityAdmission.enabled .Values.podSecurityAdmission.createNamespace }}
+# Pod Security Admission is built into Kubernetes — this just labels the app
+# namespace. warn+audit are always set; enforce only when enforce=true.
+# Only rendered when createNamespace=true. If the namespace already exists,
+# keep createNamespace=false and label it with kubectl (see README).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.appNamespace }}
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+    pod-security.kubernetes.io/warn: {{ .Values.podSecurityAdmission.level | quote }}
+    pod-security.kubernetes.io/warn-version: "latest"
+    pod-security.kubernetes.io/audit: {{ .Values.podSecurityAdmission.level | quote }}
+    pod-security.kubernetes.io/audit-version: "latest"
+    {{- if .Values.podSecurityAdmission.enforce }}
+    pod-security.kubernetes.io/enforce: {{ .Values.podSecurityAdmission.level | quote }}
+    pod-security.kubernetes.io/enforce-version: "latest"
+    {{- end }}
+{{- end }}

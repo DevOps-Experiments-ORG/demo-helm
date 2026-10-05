@@ -1,0 +1,204 @@
+{{- $mode := .Values.policyMode }}
+{{- $exclude := include "eks-security-baseline.excludedNamespaces" . }}
+{{- if .Values.policies.disallowPrivileged }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-privileged-containers
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+  annotations:
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+spec:
+  validationFailureAction: {{ $mode }}
+  background: true
+  rules:
+    - name: no-privileged
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                {{- $exclude | nindent 16 }}
+      validate:
+        message: "Privileged containers are not allowed."
+        pattern:
+          spec:
+            containers:
+              - =(securityContext):
+                  =(privileged): "false"
+    - name: no-privilege-escalation
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                {{- $exclude | nindent 16 }}
+      validate:
+        message: "allowPrivilegeEscalation must be false."
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  allowPrivilegeEscalation: "false"
+{{- end }}
+{{- if .Values.policies.requireNonRoot }}
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-run-as-non-root
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  validationFailureAction: {{ $mode }}
+  background: true
+  rules:
+    - name: run-as-non-root
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                {{- $exclude | nindent 16 }}
+      validate:
+        message: "Containers must run as non-root."
+        anyPattern:
+          - spec:
+              securityContext:
+                runAsNonRoot: "true"
+          - spec:
+              containers:
+                - securityContext:
+                    runAsNonRoot: "true"
+{{- end }}
+{{- if .Values.policies.requireResourceLimits }}
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-limits
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  validationFailureAction: {{ $mode }}
+  background: true
+  rules:
+    - name: require-limits
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                {{- $exclude | nindent 16 }}
+      validate:
+        message: "CPU and memory limits are required on every container."
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  limits:
+                    memory: "?*"
+                    cpu: "?*"
+{{- end }}
+{{- if .Values.policies.restrictRegistries }}
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registries
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  validationFailureAction: {{ $mode }}
+  background: true
+  rules:
+    - name: validate-registries
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                {{- $exclude | nindent 16 }}
+      validate:
+        message: "Images may only come from the approved ECR registry."
+        pattern:
+          spec:
+            containers:
+              - image: "{{ .Values.ecrRegistry }}/* | public.ecr.aws/*"
+{{- end }}
+{{- if .Values.policies.disallowLatestTag }}
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  validationFailureAction: {{ $mode }}
+  background: true
+  rules:
+    - name: require-explicit-tag
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                {{- $exclude | nindent 16 }}
+      validate:
+        message: "Mutable or :latest image tags are not allowed; pin a version/digest."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"
+{{- end }}
+{{- if .Values.policies.requireDropAllCaps }}
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-drop-all-capabilities
+  labels:
+    {{- include "eks-security-baseline.labels" . | nindent 4 }}
+spec:
+  validationFailureAction: {{ $mode }}
+  background: true
+  rules:
+    - name: drop-all-caps
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                {{- $exclude | nindent 16 }}
+      validate:
+        message: "Containers must drop ALL Linux capabilities."
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  capabilities:
+                    drop: ["ALL"]
+{{- end }}
