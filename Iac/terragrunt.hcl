@@ -4,6 +4,8 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 # Generate the AWS provider configuration
+# Only the AWS provider is declared here (the security-services module needs
+# only AWS). This keeps the provider download small enough for CloudShell.
 generate "provider" {
   path      = "provider.tf"
   if_exists = "overwrite_terragrunt"
@@ -15,14 +17,6 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.23"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.11"
     }
   }
 }
@@ -42,15 +36,12 @@ provider "aws" {
 EOF
 }
 
-# Configure S3 backend for remote state
+# Local state backend (no S3 bucket / DynamoDB dependency — simplest for a POC).
+# To use remote S3 state later, replace this block with a remote_state "s3" one.
 remote_state {
-  backend = "s3"
+  backend = "local"
   config = {
-    bucket         = "ai-powered-secure-k8s-tfstate-2026"
-    key            = "${path_relative_to_include()}/terraform.tfstate"
-    region         = local.aws_region
-    encrypt        = true
-    dynamodb_table = "terraform-state-lock"
+    path = "${get_terragrunt_dir()}/terraform.tfstate"
   }
   generate = {
     path      = "backend.tf"

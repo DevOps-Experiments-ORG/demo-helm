@@ -45,14 +45,17 @@ resource "aws_inspector2_enabler" "this" {
 resource "aws_guardduty_detector" "this" {
   count  = var.enable_guardduty ? 1 : 0
   enable = true
+  # NOTE: the inline "datasources" block is deprecated in AWS provider v5.
+  # Features (audit logs, runtime monitoring) are set via separate
+  # aws_guardduty_detector_feature resources below.
+}
 
-  datasources {
-    kubernetes {
-      audit_logs {
-        enable = true
-      }
-    }
-  }
+# EKS Audit Log Monitoring
+resource "aws_guardduty_detector_feature" "eks_audit_logs" {
+  count       = var.enable_guardduty ? 1 : 0
+  detector_id = aws_guardduty_detector.this[0].id
+  name        = "EKS_AUDIT_LOGS"
+  status      = "ENABLED"
 }
 
 # EKS Runtime Monitoring with the AWS-managed agent add-on

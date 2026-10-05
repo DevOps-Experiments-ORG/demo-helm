@@ -63,9 +63,51 @@ if [ "$SKIP_AWS" = false ]; then
   terraform version
   terragrunt --version
 
-  echo "==> Applying security-services (Terragrunt)"
-  ( cd "$ROOT/$TG_DIR" && terragrunt init -upgrade && terragrunt apply -auto-approve )
+  cd "$ROOT/$TG_DIR"
+  echo "==> terragrunt init"
+  terragrunt init -upgrade
 
+  # ----------------------------------------------------------------------
+  # Adopt resources that may ALREADY exist in the account (e.g. created
+  # earlier by the aws-services-setup.sh script). Importing them first makes
+  # 'apply' succeed instead of failing with "already exists". Each import is
+  # best-effort: if the resource is new (not yet created), the import simply
+  # fails and apply will create it normally.
+  # ----------------------------------------------------------------------
+  ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+  echo "==> Adopting any pre-existing AWS resources (best-effort imports)"
+
+  # ECR registry scanning config (import id = account id)
+  terragrunt import 'aws_ecr_registry_scanning_configuration.this[0]' "$ACCOUNT_ID" 2>/dev/null \
+    && echo "   imported ECR scanning config" || echo "   ECR scanning: will create"
+
+  # Inspector enabler (import id = account id)
+  terragrunt import 'aws_inspector2_enabler.this[0]' "$ACCOUNT_ID" 2>/dev/null \
+    && echo "   imported Inspector enabler" || echo "   Inspector: will create"
+
+  # GuardDuty detector (needs the existing detector id, if any)
+  DETECTOR_ID="$(aws guardduty list-detectors --region "$AWS_REGION" --query 'DetectorIds[0]' --output text 2>/dev/null)"
+  if [ -n "$DETECTOR_ID" ] && [ "$DETECTOR_ID" != "None" ]; then
+    terragrunt import 'aws_guardduty_detector.this[0]' "$DETECTOR_ID" 2>/dev/null \
+      && echo "   imported GuardDuty detector $DETECTOR_ID" || echo "   GuardDuty detector: will create"
+    terragrunt import 'aws_guardduty_detector_feature.eks_audit_logs[0]' "${DETECTOR_ID}/EKS_AUDIT_LOGS" 2>/dev/null || true
+    terragrunt import 'aws_guardduty_detector_feature.eks_runtime[0]' "${DETECTOR_ID}/EKS_RUNTIME_MONITORING" 2>/dev/null || true
+  else
+    echo "   GuardDuty: will create"
+  fi
+
+  # Signer signing profile (import id = profile name)
+  terragrunt import 'aws_signer_signing_profile.this[0]' "ecr_signing_profile" 2>/dev/null \
+    && echo "   imported Signer profile" || echo "   Signer: will create"
+
+  # Security Hub account (import id = account id)
+  terragrunt import 'aws_securityhub_account.this[0]' "$ACCOUNT_ID" 2>/dev/null \
+    && echo "   imported Security Hub account" || echo "   Security Hub: will create"
+
+  echo "==> terragrunt apply"
+  terragrunt apply -auto-approve
+
+  cd "$ROOT"
   echo "==> AWS services done."
 else
   echo "==> Skipping AWS services (--skip-aws)"
