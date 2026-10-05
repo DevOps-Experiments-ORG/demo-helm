@@ -1,0 +1,23 @@
+# Terraform / Terragrunt caches and state (big + machine-specific — never commit)
+**/.terraform/
+**/.terraform.lock.hcl
+**/.terragrunt-cache/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars.local
+
+# Helm
+**/charts/*.tgz
+**/Chart.lock
+
+# Archives / build leftovers
+*.zip
+*.tar
+*.tar.gz
+
+# OS / editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
