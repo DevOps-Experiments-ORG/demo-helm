@@ -89,13 +89,19 @@ resource "aws_securityhub_account" "this" {
 }
 
 resource "aws_securityhub_product_subscription" "guardduty" {
-  count       = var.enable_security_hub && var.enable_guardduty ? 1 : 0
-  depends_on  = [aws_securityhub_account.this]
+  count = var.enable_security_hub && var.enable_guardduty ? 1 : 0
+  depends_on = [
+    aws_securityhub_account.this,
+    aws_guardduty_detector.this, # ensure GuardDuty is enabled before subscribing
+  ]
   product_arn = "arn:aws:securityhub:${data.aws_region.current.name}::product/aws/guardduty"
 }
 
 resource "aws_securityhub_product_subscription" "inspector" {
-  count       = var.enable_security_hub && var.enable_inspector ? 1 : 0
-  depends_on  = [aws_securityhub_account.this]
+  count = var.enable_security_hub && var.enable_inspector ? 1 : 0
+  depends_on = [
+    aws_securityhub_account.this,
+    aws_inspector2_enabler.this, # ensure Inspector is enabled before subscribing
+  ]
   product_arn = "arn:aws:securityhub:${data.aws_region.current.name}::product/aws/inspector"
 }
