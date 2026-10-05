@@ -104,11 +104,28 @@ if [ "$SKIP_AWS" = false ]; then
   terragrunt import 'aws_securityhub_account.this[0]' "$ACCOUNT_ID" 2>/dev/null \
     && echo "   imported Security Hub account" || echo "   Security Hub: will create"
 
+  # Security Hub product subscriptions (import id = the product-subscription ARN)
+  terragrunt import 'aws_securityhub_product_subscription.guardduty[0]' \
+    "arn:aws:securityhub:${AWS_REGION}::product/aws/guardduty,arn:aws:securityhub:${AWS_REGION}:${ACCOUNT_ID}:product-subscription/aws/guardduty" 2>/dev/null \
+    && echo "   imported SecurityHub guardduty subscription" || echo "   SecurityHub guardduty sub: will create"
+  terragrunt import 'aws_securityhub_product_subscription.inspector[0]' \
+    "arn:aws:securityhub:${AWS_REGION}::product/aws/inspector,arn:aws:securityhub:${AWS_REGION}:${ACCOUNT_ID}:product-subscription/aws/inspector" 2>/dev/null \
+    && echo "   imported SecurityHub inspector subscription" || echo "   SecurityHub inspector sub: will create"
+
   echo "==> terragrunt apply"
-  terragrunt apply -auto-approve
+  if terragrunt apply -auto-approve; then
+    echo "==> AWS services applied successfully."
+  else
+    echo ""
+    echo "!! terragrunt apply reported errors (commonly 'already exists' for"
+    echo "   services that were enabled earlier by aws-services-setup.sh)."
+    echo "   Your AWS security services are still active regardless."
+    echo "   To let Terraform fully own them, import the conflicting resource"
+    echo "   shown in the error above, then re-run this script."
+  fi
 
   cd "$ROOT"
-  echo "==> AWS services done."
+  echo "==> AWS services step finished."
 else
   echo "==> Skipping AWS services (--skip-aws)"
 fi
