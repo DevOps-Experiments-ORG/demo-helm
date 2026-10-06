@@ -21,8 +21,13 @@ ecrRegistry: "730335384723.dkr.ecr.ap-south-1.amazonaws.com"
 
 # AWS Signer root cert for image-signature verification (Phase 8).
 # Leave verifyImages.enabled=false until you paste the real cert.
+# NOTE: the Terraform/Terragrunt dev config creates the profile named
+# "ecr_signing_profile_v2". Get the exact version ARN after apply with:
+#   terragrunt output signer_profile_version_arn
+# then replace the <VERSION> part below.
 signer:
-  profileArn: "arn:aws:signer:ap-south-1:730335384723:/signing-profiles/ecr_signing_profile/VByjb41pI7"
+  profileName: "ecr_signing_profile_v2"
+  profileArn: "arn:aws:signer:ap-south-1:730335384723:/signing-profiles/ecr_signing_profile_v2/<VERSION>"
 
 # --------------------------------------------------------------------------
 # Install order control (fixes the Kyverno CRD-ordering problem).
