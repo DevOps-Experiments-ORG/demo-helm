@@ -17,9 +17,20 @@ variable "tags" {
 
 # ---- feature toggles --------------------------------------------------------
 variable "enable_ecr_enhanced_scanning" {
-  description = "Enable ECR enhanced (Inspector-powered) continuous scanning for all repos"
+  description = "Enable ECR enhanced (Inspector-powered) continuous scanning"
   type        = bool
   default     = true
+}
+
+variable "ecr_scan_repositories" {
+  description = <<-EOT
+    List of ECR repository names to apply ENHANCED scanning to.
+    - Empty list [] = scan ALL repositories (wildcard "*").
+    - Named list   = scan ONLY those repos, e.g. ["frontend","cartservice"].
+    Wildcards are allowed in each entry, e.g. "my-app-*".
+  EOT
+  type        = list(string)
+  default     = []
 }
 
 variable "enable_inspector" {

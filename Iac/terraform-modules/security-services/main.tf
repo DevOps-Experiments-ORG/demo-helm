@@ -17,15 +17,26 @@ data "aws_region" "current" {}
 # ---------------------------------------------------------------------------
 # 1. ECR enhanced, continuous scanning (Inspector-powered)
 # ---------------------------------------------------------------------------
+locals {
+  # If no repos are listed, fall back to "*" (all repos). Otherwise use the
+  # exact names/patterns provided.
+  ecr_scan_filters = length(var.ecr_scan_repositories) > 0 ? var.ecr_scan_repositories : ["*"]
+}
+
 resource "aws_ecr_registry_scanning_configuration" "this" {
   count     = var.enable_ecr_enhanced_scanning ? 1 : 0
   scan_type = "ENHANCED"
 
-  rule {
-    scan_frequency = "CONTINUOUS_SCAN"
-    repository_filter {
-      filter      = "*"
-      filter_type = "WILDCARD"
+  # One rule per repository name/pattern. Only these repos get ENHANCED,
+  # continuous scanning; everything else stays on the registry default.
+  dynamic "rule" {
+    for_each = local.ecr_scan_filters
+    content {
+      scan_frequency = "CONTINUOUS_SCAN"
+      repository_filter {
+        filter      = rule.value
+        filter_type = "WILDCARD"
+      }
     }
   }
 }
