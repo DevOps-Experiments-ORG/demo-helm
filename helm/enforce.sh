@@ -5,12 +5,15 @@
 # ============================================================================
 set -euo pipefail
 
-APP_NS="applications"
 RELEASE="eks-security"
 SEC_NS="security"
 CHART_DIR="$(cd "$(dirname "$0")/eks-security-baseline" && pwd)"
+VALUES_FILE="$CHART_DIR/values.yaml"
 
 export PATH="$HOME/bin:$PATH"
+
+# read appNamespace from values.yaml (single source of truth)
+APP_NS="$(grep -E '^[[:space:]]*appNamespace:' "$VALUES_FILE" | head -1 | sed -E 's/^[^:]*:[[:space:]]*//; s/["'"'"']//g; s/[[:space:]]*(#.*)?$//')"
 
 echo "==> Switching Kyverno policies + PSA to ENFORCE"
 helm upgrade "$RELEASE" "$CHART_DIR" \

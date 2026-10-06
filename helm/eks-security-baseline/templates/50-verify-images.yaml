@@ -1,4 +1,4 @@
-{{- if .Values.verifyImages.enabled }}
+{{- if and .Values.installPolicies .Values.verifyImages.enabled }}
 # Verify ECR images are signed by your AWS Signer profile before admission.
 # Requires Kyverno (installed by this chart). Honors the global policyMode.
 apiVersion: kyverno.io/v1

@@ -1,8 +1,16 @@
 # ============================================================================
 # eks-security-baseline — values
-# Cluster : ai-powered-secure-k8s-cluster
-# Account : 730335384723   |   Region: ap-south-1   |   K8s: 1.35
+# Account : 730335384723   |   K8s: 1.35
 # ============================================================================
+
+# --------------------------------------------------------------------------
+# Cluster connection — used by deploy.sh to point kubectl at the right cluster.
+# (These are NOT applied as Kubernetes objects; Helm itself uses whatever
+#  kubeconfig context is active. deploy.sh reads these to set that context.)
+# --------------------------------------------------------------------------
+cluster:
+  name: "ai-powered-secure-k8s-cluster"
+  region: "ap-south-1"
 
 # The namespace your application runs in. PSA labels, network policies, quota
 # and priority defaults are applied here. CHANGE THIS to your real app namespace.
@@ -15,6 +23,14 @@ ecrRegistry: "730335384723.dkr.ecr.ap-south-1.amazonaws.com"
 # Leave verifyImages.enabled=false until you paste the real cert.
 signer:
   profileArn: "arn:aws:signer:ap-south-1:730335384723:/signing-profiles/ecr_signing_profile/VByjb41pI7"
+
+# --------------------------------------------------------------------------
+# Install order control (fixes the Kyverno CRD-ordering problem).
+#   Step A: first install with installPolicies=false  -> Kyverno + CRDs only
+#   Step B: upgrade with installPolicies=true          -> the policies apply
+# Once Kyverno is installed in the cluster you can leave this true.
+# --------------------------------------------------------------------------
+installPolicies: true
 
 # --------------------------------------------------------------------------
 # Global policy mode. Start in "Audit" so nothing is blocked; flip to "Enforce"

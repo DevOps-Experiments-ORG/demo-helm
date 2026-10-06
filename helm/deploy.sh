@@ -18,13 +18,21 @@
 set -euo pipefail
 
 # ---- config ----------------------------------------------------------------
-CLUSTER_NAME="ai-powered-secure-k8s-cluster"
-AWS_REGION="ap-south-1"
-APP_NS="applications"
 RELEASE="eks-security"
 SEC_NS="security"
 CHART_DIR="$(cd "$(dirname "$0")/eks-security-baseline" && pwd)"
+VALUES_FILE="$CHART_DIR/values.yaml"
 KYVERNO_CHART_VERSION="3.5.3"
+
+# Read cluster name/region/app namespace FROM values.yaml (single source of
+# truth). Tiny YAML reader: picks the value after the key. No yq needed.
+yval() { grep -E "^[[:space:]]*$1:" "$VALUES_FILE" | head -1 | sed -E 's/^[^:]*:[[:space:]]*//; s/["'"'"']//g; s/[[:space:]]*(#.*)?$//'; }
+
+CLUSTER_NAME="$(yval 'name')"
+AWS_REGION="$(yval 'region')"
+APP_NS="$(yval 'appNamespace')"
+
+echo "==> From values.yaml: cluster=$CLUSTER_NAME region=$AWS_REGION appNamespace=$APP_NS"
 
 echo "==> Chart: $CHART_DIR"
 

@@ -1,3 +1,4 @@
+{{- if .Values.installPolicies }}
 {{- $mode := .Values.policyMode }}
 {{- $exclude := include "eks-security-baseline.excludedNamespaces" . }}
 {{- if .Values.policies.disallowPrivileged }}
@@ -202,3 +203,4 @@ spec:
                   capabilities:
                     drop: ["ALL"]
 {{- end }}
+{{- end }}{{/* installPolicies */}}
